@@ -1,0 +1,16 @@
+{
+  "name": "mysql-source-connector",
+  "config": {
+    "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
+    "tasks.max": "1",
+    "connection.url": "jdbc:mysql://db-laboratorio-utec.cfqay6u8sikg.us-east-1.rds.amazonaws.com:3306/db_lab_utec?useSSL=false&allowPublicKeyRetrieval=true",
+    "connection.user": "admin",
+    "connection.password": "Utec1234$",
+    "table.whitelist": "operaciones",
+    "mode": "incrementing",
+    "incrementing.column.name": "id",
+    "topic.prefix": "mysql-",
+    "poll.interval.ms": "10000",
+    "driver.class": "com.mysql.cj.jdbc.Driver"
+  }
+}

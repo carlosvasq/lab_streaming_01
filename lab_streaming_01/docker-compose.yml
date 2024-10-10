@@ -1,0 +1,90 @@
+version: '3.8'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - kafka-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    networks:
+      - kafka-network
+
+  kafka-connect:
+    build:
+      context: .
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_GROUP_ID: kafka-connect-group
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_REST_PORT: 8083
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/java/kafka-connect-jdbc,/usr/share/java/kafka-connect-s3"
+      CLASSPATH: "/usr/share/java/kafka-connect-s3/*:/usr/share/java/kafka-connect-jdbc/*"
+      CONNECT_HEAP_OPTS: "-Xms512m -Xmx512m"
+    depends_on:
+      - kafka
+    volumes:
+      - ./connectors:/etc/kafka-connect/connectors
+    command: ["bash", "/setup-connect.sh"]
+    networks:
+      - kafka-network
+
+  create-topics:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - kafka
+    entrypoint: >
+      bash -c "
+      kafka-topics --create --topic mysql-operaciones --partitions 1 --replication-factor 1 --if-not-exists --bootstrap-server kafka:9092;
+      "
+    networks:
+      - kafka-network
+
+  kafka-consumer:
+    build:
+      context: ./consumer  # Dockerfile for the consumer is inside the consumer directory
+    environment:
+      BOOTSTRAP_SERVERS: "kafka:9092"  # Use Kafka service name for internal network communication
+      TOPIC_NAME: "mysql-operaciones"
+      GROUP_ID: "mysql-operations-group"
+    depends_on:
+      - kafka  # Make sure it waits for Kafka
+      - create-topics
+      - kafka-connect
+      - zookeeper
+    networks:
+      - kafka-network
+
+networks:
+  kafka-network:
+    driver: bridge

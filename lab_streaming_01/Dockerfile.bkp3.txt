@@ -1,0 +1,20 @@
+# Use the Confluent Kafka Connect base image
+FROM confluentinc/cp-kafka-connect:7.4.0
+
+# Switch to root to install necessary files and change permissions
+USER root
+
+# Install the S3 connector using Confluent Hub
+RUN confluent-hub install --no-prompt confluentinc/kafka-connect-s3:10.4.6
+
+# Copy the setup script into the container
+COPY setup-connect.sh /setup-connect.sh
+
+# Change permissions of the script
+RUN chown appuser:appuser /setup-connect.sh && chmod +x /setup-connect.sh
+
+# Use the non-root user for security
+USER appuser
+
+# Run the setup script to start Kafka Connect
+CMD ["bash", "/setup-connect.sh"]

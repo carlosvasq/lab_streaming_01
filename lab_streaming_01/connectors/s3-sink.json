@@ -1,0 +1,22 @@
+{
+  "name": "s3-sink-connector",
+  "config": {
+    "connector.class": "io.confluent.connect.s3.S3SinkConnector",
+    "tasks.max": "1",
+    "topics": "mysql-operaciones",
+    "s3.bucket.name": "s3-lab01-dlk",
+    "s3.region": "us-east-1",
+    "flush.size": "3",
+    "format.class": "io.confluent.connect.s3.format.avro.AvroFormat",
+    "storage.class": "io.confluent.connect.s3.storage.S3Storage",
+    "schema.compatibility": "NONE",
+    "s3.part.size": "5242880",
+    "aws.access.key.id": "AKIAZQ3DUJPSECC7MWWZ",
+    "aws.secret.access.key": "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",
+    "partitioner.class": "io.confluent.connect.storage.partitioner.TimeBasedPartitioner",
+    "partition.duration.ms": "60000",
+    "path.format": "'year'=YYYY/'month'=MM/'day'=dd/'hour'=HH",
+    "locale": "en",
+    "timezone": "UTC"
+  }
+}
